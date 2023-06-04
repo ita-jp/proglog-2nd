@@ -11,10 +11,20 @@ var (
 	width = uint64(len(write)) + lenWidth
 )
 
+func removeFileFunc(t *testing.T, name string) func() {
+	t.Helper()
+	return func() {
+		err := os.Remove(name)
+		if err != nil {
+			t.Errorf("got error = %v", err)
+		}
+	}
+}
+
 func TestStoreAppendRead(t *testing.T) {
 	f, err := os.CreateTemp("", "store_append_read_test")
 	require.NoError(t, err)
-	defer os.Remove(f.Name())
+	defer removeFileFunc(t, f.Name())
 
 	s, err := newStore(f)
 	require.NoError(t, err)
@@ -23,6 +33,7 @@ func TestStoreAppendRead(t *testing.T) {
 	testRead(t, s)
 	testReadAt(t, s)
 
+	// 再びストアを作成し、ファイルからの読み出しをテスト
 	s, err = newStore(f)
 	require.NoError(t, err)
 	testRead(t, s)
@@ -70,7 +81,8 @@ func testReadAt(t *testing.T, s *store) {
 func TestStoreClose(t *testing.T) {
 	f, err := os.CreateTemp("", "store_close_test")
 	require.NoError(t, err)
-	defer os.Remove(f.Name())
+	defer removeFileFunc(t, f.Name())
+
 	s, err := newStore(f)
 	require.NoError(t, err)
 	_, _, err = s.Append(write)
